@@ -1,3 +1,7 @@
+# Patch Summary for Jetty 9
+- Patch /portal-master/portal-impl/src/com/liferay/portal/servlet/filters/gzip/GZipResponse.java to not causing IllegalArgumentException when setContentLength(-1) is caused. This class needs to replace the one in portal-impl.jar.
+- Patch class loader issue with ehcache (posted by donino at [Liferay Forum](https://www.liferay.com/community/forums/-/message_boards/message/31395155)). The compiled class should be placed under ROOT/WEB-INF/classes in correct package structure.
+
 # Liferay Portal
 
 [Liferay

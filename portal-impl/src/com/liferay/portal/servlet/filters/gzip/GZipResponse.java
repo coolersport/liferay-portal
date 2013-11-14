@@ -14,6 +14,15 @@
 
 package com.liferay.portal.servlet.filters.gzip;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.util.zip.GZIPOutputStream;
+
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import com.liferay.portal.kernel.io.unsync.UnsyncByteArrayOutputStream;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
@@ -26,183 +35,196 @@ import com.liferay.portal.kernel.util.UnsyncPrintWriterPool;
 import com.liferay.portal.util.PropsValues;
 import com.liferay.util.RSSThreadLocal;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintWriter;
-
-import java.util.zip.GZIPOutputStream;
-
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 /**
  * @author Jayson Falkner
  * @author Brian Wing Shun Chan
  * @author Shuyang Zhou
  */
-public class GZipResponse extends MetaInfoCacheServletResponse {
+public class GZipResponse extends MetaInfoCacheServletResponse
+{
 
-	public GZipResponse(
-		HttpServletRequest request, HttpServletResponse response) {
+    public GZipResponse(final HttpServletRequest request, final HttpServletResponse response)
+    {
 
-		super(response);
+        super(response);
 
-		_response = response;
+        _response = response;
 
-		// Clear previous content length setting. GZip response does not buffer
-		// output to get final content length. The response will be chunked
-		// unless an outer filter calculates the content length.
+        // Clear previous content length setting. GZip response does not buffer
+        // output to get final content length. The response will be chunked
+        // unless an outer filter calculates the content length.
 
-		_response.setContentLength(-1);
+        //_response.setContentLength(-1);
+        // patch for jetty 9
+        _response.setHeader(HttpHeaders.CONTENT_LENGTH, "-1");
 
-		// Setting the header after finishResponse is too late
+        // Setting the header after finishResponse is too late
 
-		_response.addHeader(HttpHeaders.CONTENT_ENCODING, _GZIP);
+        _response.addHeader(HttpHeaders.CONTENT_ENCODING, _GZIP);
 
-		_firefox = BrowserSnifferUtil.isFirefox(request);
-	}
+        _firefox = BrowserSnifferUtil.isFirefox(request);
+    }
 
-	@Override
-	public void finishResponse() throws IOException {
+    @Override
+    public void finishResponse() throws IOException
+    {
 
-		// Is the response committed?
+        // Is the response committed?
 
-		if (!isCommitted()) {
+        if (!isCommitted())
+        {
 
-			// Has the content been GZipped yet?
+            // Has the content been GZipped yet?
 
-			if ((_servletOutputStream == null) ||
-				((_servletOutputStream != null) &&
-				 (_unsyncByteArrayOutputStream != null) &&
-				 (_unsyncByteArrayOutputStream.size() == 0))) {
+            if ((_servletOutputStream == null)
+                || ((_servletOutputStream != null) && (_unsyncByteArrayOutputStream != null) && (_unsyncByteArrayOutputStream
+                    .size() == 0)))
+            {
 
-				// Reset the wrapped response to clear out the GZip header
+                // Reset the wrapped response to clear out the GZip header
 
-				_response.reset();
+                _response.reset();
 
-				// Reapply meta data
+                // Reapply meta data
 
-				super.finishResponse();
-			}
-		}
+                super.finishResponse();
+            }
+        }
 
-		try {
-			if (_printWriter != null) {
-				_printWriter.close();
-			}
-			else if (_servletOutputStream != null) {
-				_servletOutputStream.close();
-			}
-		}
-		catch (IOException ioe) {
-		}
+        try
+        {
+            if (_printWriter != null)
+            {
+                _printWriter.close();
+            }
+            else if (_servletOutputStream != null)
+            {
+                _servletOutputStream.close();
+            }
+        }
+        catch (IOException ioe)
+        {
+        }
 
-		if (_unsyncByteArrayOutputStream != null) {
-			_response.setContentLength(_unsyncByteArrayOutputStream.size());
+        if (_unsyncByteArrayOutputStream != null)
+        {
+            _response.setContentLength(_unsyncByteArrayOutputStream.size());
 
-			_unsyncByteArrayOutputStream.writeTo(_response.getOutputStream());
-		}
-	}
+            _unsyncByteArrayOutputStream.writeTo(_response.getOutputStream());
+        }
+    }
 
-	@Override
-	public void flushBuffer() throws IOException {
-		if (_servletOutputStream != null) {
-			_servletOutputStream.flush();
-		}
-	}
+    @Override
+    public void flushBuffer() throws IOException
+    {
+        if (_servletOutputStream != null)
+        {
+            _servletOutputStream.flush();
+        }
+    }
 
-	@Override
-	public ServletOutputStream getOutputStream() throws IOException {
-		if (_printWriter != null) {
-			throw new IllegalStateException();
-		}
+    @Override
+    public ServletOutputStream getOutputStream() throws IOException
+    {
+        if (_printWriter != null)
+        {
+            throw new IllegalStateException();
+        }
 
-		if (_servletOutputStream == null) {
-			if (_isGZipContentType()) {
-				_servletOutputStream = _response.getOutputStream();
-			}
-			else {
-				if (_firefox && RSSThreadLocal.isExportRSS()) {
-					_unsyncByteArrayOutputStream =
-						new UnsyncByteArrayOutputStream();
+        if (_servletOutputStream == null)
+        {
+            if (_isGZipContentType())
+            {
+                _servletOutputStream = _response.getOutputStream();
+            }
+            else
+            {
+                if (_firefox && RSSThreadLocal.isExportRSS())
+                {
+                    _unsyncByteArrayOutputStream = new UnsyncByteArrayOutputStream();
 
-					_servletOutputStream = _createGZipServletOutputStream(
-						_unsyncByteArrayOutputStream);
-				}
-				else {
-					_servletOutputStream = _createGZipServletOutputStream(
-						_response.getOutputStream());
-				}
-			}
-		}
+                    _servletOutputStream = _createGZipServletOutputStream(_unsyncByteArrayOutputStream);
+                }
+                else
+                {
+                    _servletOutputStream = _createGZipServletOutputStream(_response.getOutputStream());
+                }
+            }
+        }
 
-		return _servletOutputStream;
-	}
+        return _servletOutputStream;
+    }
 
-	@Override
-	public PrintWriter getWriter() throws IOException {
-		if (_printWriter != null) {
-			return _printWriter;
-		}
+    @Override
+    public PrintWriter getWriter() throws IOException
+    {
+        if (_printWriter != null)
+        {
+            return _printWriter;
+        }
 
-		if (_servletOutputStream != null) {
-			throw new IllegalStateException();
-		}
+        if (_servletOutputStream != null)
+        {
+            throw new IllegalStateException();
+        }
 
-		if (_log.isWarnEnabled()) {
-			_log.warn("Use getOutputStream for optimum performance");
-		}
+        if (_log.isWarnEnabled())
+        {
+            _log.warn("Use getOutputStream for optimum performance");
+        }
 
-		_servletOutputStream = getOutputStream();
+        _servletOutputStream = getOutputStream();
 
-		_printWriter = UnsyncPrintWriterPool.borrow(
-			_servletOutputStream, getCharacterEncoding());
+        _printWriter = UnsyncPrintWriterPool.borrow(_servletOutputStream, getCharacterEncoding());
 
-		return _printWriter;
-	}
+        return _printWriter;
+    }
 
-	@Override
-	public void setContentLength(int contentLength) {
-	}
+    @Override
+    public void setContentLength(final int contentLength)
+    {
+    }
 
-	private ServletOutputStream _createGZipServletOutputStream(
-			OutputStream outputStream)
-		throws IOException {
+    private ServletOutputStream _createGZipServletOutputStream(final OutputStream outputStream) throws IOException
+    {
 
-		GZIPOutputStream gzipOutputStream = new GZIPOutputStream(outputStream) {
+        GZIPOutputStream gzipOutputStream = new GZIPOutputStream(outputStream)
+        {
 
-			{
-				def.setLevel(PropsValues.GZIP_COMPRESSION_LEVEL);
-			}
+            {
+                def.setLevel(PropsValues.GZIP_COMPRESSION_LEVEL);
+            }
 
-		};
+        };
 
-		return new ServletOutputStreamAdapter(gzipOutputStream);
-	}
+        return new ServletOutputStreamAdapter(gzipOutputStream);
+    }
 
-	private boolean _isGZipContentType() {
-		String contentType = getContentType();
+    private boolean _isGZipContentType()
+    {
+        String contentType = getContentType();
 
-		if (contentType != null) {
-			if (contentType.equals(ContentTypes.APPLICATION_GZIP) ||
-				contentType.equals(ContentTypes.APPLICATION_X_GZIP)) {
+        if (contentType != null)
+        {
+            if (contentType.equals(ContentTypes.APPLICATION_GZIP)
+                || contentType.equals(ContentTypes.APPLICATION_X_GZIP))
+            {
 
-				return true;
-			}
-		}
+                return true;
+            }
+        }
 
-		return false;
-	}
+        return false;
+    }
 
-	private static final String _GZIP = "gzip";
+    private static final String _GZIP = "gzip";
 
-	private static Log _log = LogFactoryUtil.getLog(GZipResponse.class);
+    private static Log _log = LogFactoryUtil.getLog(GZipResponse.class);
 
-	private boolean _firefox;
-	private PrintWriter _printWriter;
-	private HttpServletResponse _response;
-	private ServletOutputStream _servletOutputStream;
-	private UnsyncByteArrayOutputStream _unsyncByteArrayOutputStream;
+    private boolean _firefox;
+    private PrintWriter _printWriter;
+    private HttpServletResponse _response;
+    private ServletOutputStream _servletOutputStream;
+    private UnsyncByteArrayOutputStream _unsyncByteArrayOutputStream;
 
 }
