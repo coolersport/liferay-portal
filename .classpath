@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
+	<classpathentry excluding="**/.svn/**|.svn/" kind="src" path="jetty9_patches"/>
 	<classpathentry excluding="**/.svn/**|.svn/" kind="src" path="definitions"/>
 	<classpathentry excluding="**/.svn/**|.svn/" kind="src" path="osgi/bootstrap/src"/>
 	<classpathentry excluding="**/.svn/**|.svn/" kind="src" path="portal-impl/src"/>
@@ -47,8 +48,8 @@
 	<classpathentry kind="lib" path="lib/development/jasper.jar"/>
 	<classpathentry kind="lib" path="lib/development/jaxb-api.jar"/>
 	<classpathentry kind="lib" path="lib/development/jbi_rt.jar"/>
-	<classpathentry kind="lib" path="lib/development/jetty-server.jar"/>
-	<classpathentry kind="lib" path="lib/development/jetty-util.jar"/>
+	<classpathentry kind="lib" path="lib/development/jetty-server-9.0.6.v20130930.jar"/>
+	<classpathentry kind="lib" path="lib/development/jetty-util-9.0.6.v20130930.jar"/>
 	<classpathentry kind="lib" path="lib/development/jhighlight.jar"/>
 	<classpathentry kind="lib" path="lib/development/jms.jar"/>
 	<classpathentry kind="lib" path="lib/development/jndi.jar"/>
